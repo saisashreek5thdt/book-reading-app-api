@@ -1,4 +1,4 @@
-// app/api/login/route.js (App Router)
+// /app/api/auth/login/route.js
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { signToken } from '@/lib/auth';
@@ -6,69 +6,105 @@ import { NextResponse } from 'next/server';
 import { cookies as getCookies } from 'next/headers';
 
 export async function POST(request) {
-  let body;
+  const origin = request.headers.get('origin');
 
-  // Parse JSON safely
+  let body;
   try {
     body = await request.json();
   } catch (error) {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return new NextResponse(JSON.stringify({ error: 'Invalid JSON' }), {
+      status: 400,
+      headers: {
+        'Access-Control-Allow-Origin': origin || '*',
+        'Access-Control-Allow-Credentials': 'true',
+        'Content-Type': 'application/json',
+      },
+    });
   }
 
   const { email, password } = body;
 
-  // Validate required fields
   if (!email || !password) {
-    return NextResponse.json(
-      { error: 'Email and password are required' },
-      { status: 400 }
+    return new NextResponse(
+      JSON.stringify({ error: 'Email and password are required' }),
+      {
+        status: 400,
+        headers: {
+          'Access-Control-Allow-Origin': origin || '*',
+          'Access-Control-Allow-Credentials': 'true',
+          'Content-Type': 'application/json',
+        },
+      }
     );
   }
 
-  // Find user by email
   const user = await prisma.user.findUnique({
     where: { email },
   });
 
   if (!user) {
-    return NextResponse.json(
-      { error: 'Invalid credentials' },
-      { status: 401 }
-    );
+    return new NextResponse(JSON.stringify({ error: 'Invalid credentials' }), {
+      status: 401,
+      headers: {
+        'Access-Control-Allow-Origin': origin || '*',
+        'Access-Control-Allow-Credentials': 'true',
+        'Content-Type': 'application/json',
+      },
+    });
   }
 
-  // Compare passwords
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
-    return NextResponse.json(
-      { error: 'Invalid credentials' },
-      { status: 401 }
-    );
+    return new NextResponse(JSON.stringify({ error: 'Invalid credentials' }), {
+      status: 401,
+      headers: {
+        'Access-Control-Allow-Origin': origin || '*',
+        'Access-Control-Allow-Credentials': 'true',
+        'Content-Type': 'application/json',
+      },
+    });
   }
 
-  // Generate token
   const token = signToken(user);
 
-  // Set cookie
   const cookies = await getCookies();
   cookies.set('token', token, {
     httpOnly: true,
     path: '/',
     maxAge: 60 * 60, // 1 hour
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    secure: true, // Must be true in production
+    sameSite: 'none', // Required for cross-origin
   });
 
-  // Return success response
-  return NextResponse.json(
-    {
+  return new NextResponse(
+    JSON.stringify({
       message: 'Login successful',
       user: {
         id: user.id,
         email: user.email,
         username: user.username,
       },
-    },
-    { status: 200 }
+    }),
+    {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': origin || '*',
+        'Access-Control-Allow-Credentials': 'true',
+        'Content-Type': 'application/json',
+      },
+    }
   );
+}
+
+export async function OPTIONS(request) {
+  const origin = request.headers.get('origin');
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': origin || '*',
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
 }
