@@ -10,57 +10,48 @@ export async function POST(request) {
   try {
     body = await request.json();
   } catch (error) {
-    return new NextResponse(JSON.stringify({ error: 'Invalid JSON' }), {
+    return NextResponse.json({ error: 'Invalid JSON' }, {
       status: 400,
       headers: {
         'Access-Control-Allow-Origin': origin || '*',
         'Access-Control-Allow-Credentials': 'true',
-        'Content-Type': 'application/json',
-      },
+      }
     });
   }
 
   const { email, password } = body;
 
   if (!email || !password) {
-    return new NextResponse(
-      JSON.stringify({ error: 'Email and password are required' }),
-      {
-        status: 400,
-        headers: {
-          'Access-Control-Allow-Origin': origin || '*',
-          'Access-Control-Allow-Credentials': 'true',
-          'Content-Type': 'application/json',
-        },
+    return NextResponse.json({ error: 'Email and password are required' }, {
+      status: 400,
+      headers: {
+        'Access-Control-Allow-Origin': origin || '*',
+        'Access-Control-Allow-Credentials': 'true',
       }
-    );
+    });
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email },
-  });
+  const user = await prisma.user.findUnique({ where: { email } });
 
   if (!user) {
-    return new NextResponse(JSON.stringify({ error: 'Invalid credentials' }), {
+    return NextResponse.json({ error: 'Invalid credentials' }, {
       status: 401,
       headers: {
         'Access-Control-Allow-Origin': origin || '*',
         'Access-Control-Allow-Credentials': 'true',
-        'Content-Type': 'application/json',
-      },
+      }
     });
   }
 
   const isMatch = await bcrypt.compare(password, user.password);
 
   if (!isMatch) {
-    return new NextResponse(JSON.stringify({ error: 'Invalid credentials' }), {
+    return NextResponse.json({ error: 'Invalid credentials' }, {
       status: 401,
       headers: {
         'Access-Control-Allow-Origin': origin || '*',
         'Access-Control-Allow-Credentials': 'true',
-        'Content-Type': 'application/json',
-      },
+      }
     });
   }
 
@@ -71,29 +62,25 @@ export async function POST(request) {
     httpOnly: true,
     path: '/',
     maxAge: 60 * 60, // 1 hour
-    secure: process.env.NODE_ENV === 'production', // only HTTPS
-    sameSite: 'none', // Required for cross-origin requests
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'none',
   });
 
-  return new NextResponse(
-    JSON.stringify({
-      message: 'Login successful',
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-      },
-      token, // 👈 Include token in response body
-    }),
-    {
-      status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': origin || '*',
-        'Access-Control-Allow-Credentials': 'true',
-        'Content-Type': 'application/json',
-      },
+  return NextResponse.json({
+    message: 'Login successful',
+    user: {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+    },
+    token, // 👈 Include token in response
+  }, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': origin || '*',
+      'Access-Control-Allow-Credentials': 'true',
     }
-  );
+  });
 }
 
 export async function OPTIONS(request) {
