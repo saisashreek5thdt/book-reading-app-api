@@ -1,4 +1,3 @@
-// /app/api/auth/login/route.js
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { signToken } from '@/lib/auth';
@@ -7,7 +6,6 @@ import { cookies as getCookies } from 'next/headers';
 
 export async function POST(request) {
   const origin = request.headers.get('origin');
-
   let body;
   try {
     body = await request.json();
@@ -54,6 +52,7 @@ export async function POST(request) {
   }
 
   const isMatch = await bcrypt.compare(password, user.password);
+
   if (!isMatch) {
     return new NextResponse(JSON.stringify({ error: 'Invalid credentials' }), {
       status: 401,
@@ -66,14 +65,14 @@ export async function POST(request) {
   }
 
   const token = signToken(user);
-
   const cookies = await getCookies();
+
   cookies.set('token', token, {
     httpOnly: true,
     path: '/',
     maxAge: 60 * 60, // 1 hour
-    secure: true, // Must be true in production
-    sameSite: 'none', // Required for cross-origin
+    secure: process.env.NODE_ENV === 'production', // only HTTPS
+    sameSite: 'none', // Required for cross-origin requests
   });
 
   return new NextResponse(
@@ -84,6 +83,7 @@ export async function POST(request) {
         email: user.email,
         username: user.username,
       },
+      token, // 👈 Include token in response body
     }),
     {
       status: 200,

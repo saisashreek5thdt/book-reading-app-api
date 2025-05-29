@@ -7,9 +7,9 @@ export async function POST() {
   cookies.set('token', '', {
     httpOnly: true,
     path: '/',
-    expires: new Date(0), // Set to past date
+    maxAge: 0, // Clear cookie immediately
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'none',
   });
 
   return NextResponse.json({ message: 'Logout successful' }, { status: 200 });
