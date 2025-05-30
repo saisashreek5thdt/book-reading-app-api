@@ -31,7 +31,13 @@ export async function POST(request) {
     });
   }
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({ where: { email },  select: {
+      id: true,
+      email: true,
+      fullName: true,
+      mobile: true,
+      password: true,
+    },});
 
   if (!user) {
     return NextResponse.json({ error: 'Invalid credentials' }, {
@@ -71,9 +77,10 @@ export async function POST(request) {
     user: {
       id: user.id,
       email: user.email,
-      username: user.username,
+      fullName: user.fullName, 
+      mobile: user.mobile, 
     },
-    token, // 👈 Include token in response
+    token, 
   }, {
     status: 200,
     headers: {
