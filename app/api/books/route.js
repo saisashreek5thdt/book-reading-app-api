@@ -9,6 +9,9 @@ export async function GET() {
     const books = await prisma.book.findMany({
       include: {
         categories: true,
+        contentBlocks: {
+        orderBy: { order: 'asc' },
+    },
       },
     });
     return NextResponse.json(books, { status: 200 });
@@ -34,6 +37,8 @@ export async function POST(request) {
       audioLink,
       relatedInfo,
       categoryNames = [],
+      layout = "MIXED", // NEW
+      contentBlocks = [],
     } = body;
 
     if (!title || !author || !language) {
@@ -65,12 +70,21 @@ export async function POST(request) {
         pageCount: pageCount ? parseInt(pageCount) : null,
         audioLink,
         relatedInfo,
+        layout,
         categories: {
           connect: categoryIds.map((id) => ({ id })),
         },
+        contentBlocks: {
+        create: contentBlocks.map((block) => ({
+        type: block.type,
+        content: block.content,
+        order: block.order,
+      })),
+    },
       },
       include: {
         categories: true,
+        contentBlocks: true,
       },
     });
 

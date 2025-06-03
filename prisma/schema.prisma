@@ -24,21 +24,46 @@ model User {
 }
 
 model Book {
-  id               Int        @id @default(autoincrement())
+  id               Int            @id @default(autoincrement())
   title            String
   author           String
   language         String
   coverImage       String?
   smallDescription String?
-  content          String     @db.Text
+  content          String?        @db.Text  // Optional fallback
   pageCount        Int?
   audioLink        String?
-  relatedInfo      String?    @db.Text
-  categories       Category[]
+  relatedInfo      String?        @db.Text
+  layout           LayoutType     @default(MIXED) // NEW
+  contentBlocks    ContentBlock[]             // NEW
+
+  categories       Category[]     
   bookmarks        Bookmark[]
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 }
+
+model ContentBlock {
+  id       Int        @id @default(autoincrement())
+  type     BlockType
+  content  String
+  order    Int
+  book     Book       @relation(fields: [bookId], references: [id])
+  bookId   Int
+}
+
+enum BlockType {
+  TEXT
+  IMAGE
+}
+
+enum LayoutType {
+  FULL_TEXT
+  IMAGE_TOP_TEXT_BOTTOM
+  TEXT_TOP_IMAGE_BOTTOM
+  MIXED
+}
+
 
 model Category {
   id        Int      @id @default(autoincrement())

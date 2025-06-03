@@ -19,6 +19,9 @@ export async function GET(request, { params }) {
       include: {
         categories: true,
         bookmarks: true,
+        contentBlocks: {
+      orderBy: { order: 'asc' },
+    },
       },
     });
 
