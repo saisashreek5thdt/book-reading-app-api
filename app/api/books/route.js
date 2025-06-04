@@ -3,15 +3,15 @@ import { NextResponse } from 'next/server';
 
 const prisma = new PrismaClient();
 
-// GET /api/books - Get all books
+// GET /api/books - Get all books with categories and contentBlocks
 export async function GET() {
   try {
     const books = await prisma.book.findMany({
       include: {
         categories: true,
         contentBlocks: {
-        orderBy: { order: 'asc' },
-    },
+          orderBy: { order: 'asc' },
+        },
       },
     });
     return NextResponse.json(books, { status: 200 });
@@ -37,7 +37,7 @@ export async function POST(request) {
       audioLink,
       relatedInfo,
       categoryNames = [],
-      layout = "MIXED", // NEW
+      layout = "MIXED",
       contentBlocks = [],
     } = body;
 
@@ -48,16 +48,23 @@ export async function POST(request) {
       );
     }
 
-    // Fetch category IDs by name
-    const categories = await prisma.category.findMany({
-      where: {
-        name: {
-          in: categoryNames,
-        },
-      },
+    // Ensure categories exist — create missing ones
+    const existingCategories = await prisma.category.findMany({
+      where: { name: { in: categoryNames } },
     });
 
-    const categoryIds = categories.map((cat) => cat.id);
+    const existingNames = existingCategories.map(cat => cat.name);
+    const newNames = categoryNames.filter(name => !existingNames.includes(name));
+
+    let newCategories = [];
+    if (newNames.length > 0) {
+      newCategories = await prisma.category.createManyAndReturn({
+        data: newNames.map(name => ({ name })),
+      });
+    }
+
+    const allCategories = [...existingCategories, ...newCategories];
+    const categoryIds = allCategories.map(cat => cat.id);
 
     const book = await prisma.book.create({
       data: {
@@ -72,15 +79,15 @@ export async function POST(request) {
         relatedInfo,
         layout,
         categories: {
-          connect: categoryIds.map((id) => ({ id })),
+          connect: categoryIds.map(id => ({ id })),
         },
         contentBlocks: {
-        create: contentBlocks.map((block) => ({
-        type: block.type,
-        content: block.content,
-        order: block.order,
-      })),
-    },
+          create: contentBlocks.map(block => ({
+            type: block.type,
+            content: block.content,
+            order: block.order,
+          })),
+        },
       },
       include: {
         categories: true,

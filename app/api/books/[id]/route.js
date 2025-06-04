@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 // GET /api/books/[id] - Get book by ID
 export async function GET(request, { params }) {
-  const { id } = await params; // ✅ Await params
+  const { id } = await params;
 
   if (isNaN(parseInt(id))) {
     return NextResponse.json({ error: 'Invalid book ID' }, { status: 400 });
@@ -18,10 +18,9 @@ export async function GET(request, { params }) {
       where: { id: bookId },
       include: {
         categories: true,
-        bookmarks: true,
         contentBlocks: {
-      orderBy: { order: 'asc' },
-    },
+          orderBy: { order: 'asc' },
+        },
       },
     });
 
@@ -37,8 +36,9 @@ export async function GET(request, { params }) {
 }
 
 // PUT /api/books/[id] - Update book
+// PUT /api/books/[id] - Update book
 export async function PUT(request, { params }) {
-  const { id } = await params; // ✅ Await params
+  const { id } = await params;
 
   if (isNaN(parseInt(id))) {
     return NextResponse.json({ error: 'Invalid book ID' }, { status: 400 });
@@ -63,8 +63,28 @@ export async function PUT(request, { params }) {
     pageCount,
     audioLink,
     relatedInfo,
-    categoryIds = [],
+    categoryNames = [],
+    layout,
+    contentBlocks = [],
   } = body;
+
+  // Ensure categories exist — create missing ones
+  const existingCategories = await prisma.category.findMany({
+    where: { name: { in: categoryNames } },
+  });
+
+  const existingNames = existingCategories.map(cat => cat.name);
+  const newNames = categoryNames.filter(name => !existingNames.includes(name));
+
+  let newCategories = [];
+  if (newNames.length > 0) {
+    newCategories = await prisma.category.createManyAndReturn({
+      data: newNames.map(name => ({ name })),
+    });
+  }
+
+  const allCategories = [...existingCategories, ...newCategories];
+  const categoryIds = allCategories.map(cat => cat.id);
 
   try {
     const updatedBook = await prisma.book.update({
@@ -76,15 +96,25 @@ export async function PUT(request, { params }) {
         coverImage,
         smallDescription,
         content,
-        pageCount: pageCount ? parseInt(pageCount) : null,
+        pageCount: pageCount ? parseInt(pageCount) : undefined,
         audioLink,
         relatedInfo,
+        layout,
         categories: {
-          set: categoryIds.map((id) => ({ id: parseInt(id) })),
+          set: categoryIds.map(id => ({ id })),
+        },
+        contentBlocks: {
+          deleteMany: {},
+          create: contentBlocks.map(block => ({
+            type: block.type,
+            content: block.content,
+            order: block.order,
+          })),
         },
       },
       include: {
         categories: true,
+        contentBlocks: true,
       },
     });
 
@@ -97,7 +127,7 @@ export async function PUT(request, { params }) {
 
 // DELETE /api/books/[id] - Delete book
 export async function DELETE(request, { params }) {
-  const { id } = await params; // ✅ Await params
+  const { id } = await params;
 
   if (isNaN(parseInt(id))) {
     return NextResponse.json({ error: 'Invalid book ID' }, { status: 400 });
