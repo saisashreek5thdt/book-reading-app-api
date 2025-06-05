@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 
 const prisma = new PrismaClient();
 
+
+
 export async function PUT(request, { params }) {
   const { id } = await params; // ✅ Await params
 
@@ -42,6 +44,30 @@ export async function PUT(request, { params }) {
     console.error('Error updating bookmark:', error);
     return NextResponse.json(
       { error: 'Internal Server Error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request, { params }) {
+  const { id } = await params;
+
+  if (isNaN(parseInt(id))) {
+    return NextResponse.json({ error: "Invalid bookmark ID" }, { status: 400 });
+  }
+
+  const bookmarkId = parseInt(id);
+
+  try {
+    await prisma.bookmark.delete({
+      where: { id: bookmarkId },
+    });
+
+    return NextResponse.json({ message: "Bookmark deleted successfully" }, { status: 200 });
+  } catch (error) {
+    console.error("Error deleting bookmark:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
       { status: 500 }
     );
   }
