@@ -12,6 +12,7 @@ export async function GET() {
         contentBlocks: {
           orderBy: { order: 'asc' },
         },
+        images: true,
       },
     });
     return NextResponse.json(books, { status: 200 });
@@ -39,6 +40,7 @@ export async function POST(request) {
       categoryNames = [],
       layout = "MIXED",
       contentBlocks = [],
+      images=[]
     } = body;
 
     if (!title || !author || !language) {
@@ -78,6 +80,7 @@ export async function POST(request) {
         audioLink,
         relatedInfo,
         layout,
+        images:{set:images},
         categories: {
           connect: categoryIds.map(id => ({ id })),
         },

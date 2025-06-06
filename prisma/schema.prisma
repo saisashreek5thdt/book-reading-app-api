@@ -36,7 +36,7 @@ model Book {
   relatedInfo      String?        @db.Text
   layout           LayoutType     @default(MIXED) // NEW
   contentBlocks    ContentBlock[]             // NEW
-
+  images           String[]      // NEW
   categories       Category[]     
   bookmarks        Bookmark[]
   createdAt        DateTime       @default(now())

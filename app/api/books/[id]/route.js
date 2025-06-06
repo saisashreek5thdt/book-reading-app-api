@@ -18,6 +18,7 @@ export async function GET(request, { params }) {
       where: { id: bookId },
       include: {
         categories: true,
+        images: true,
         contentBlocks: {
           orderBy: { order: 'asc' },
         },
@@ -66,6 +67,7 @@ export async function PUT(request, { params }) {
     categoryNames = [],
     layout,
     contentBlocks = [],
+    images=[]
   } = body;
 
   // Ensure categories exist — create missing ones
@@ -100,6 +102,7 @@ export async function PUT(request, { params }) {
         audioLink,
         relatedInfo,
         layout,
+        images:{set:images},
         categories: {
           set: categoryIds.map(id => ({ id })),
         },
