@@ -139,6 +139,12 @@ export async function DELETE(request, { params }) {
   const bookId = parseInt(id);
 
   try {
+    // Step 1: Delete related records first
+    await prisma.bookmark.deleteMany({
+      where: { bookId },
+    });
+
+    // Step 2: Now safely delete the book
     await prisma.book.delete({
       where: { id: bookId },
     });
@@ -146,6 +152,6 @@ export async function DELETE(request, { params }) {
     return NextResponse.json({ message: 'Book deleted successfully' }, { status: 200 });
   } catch (error) {
     console.error('Error deleting book:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
   }
 }
