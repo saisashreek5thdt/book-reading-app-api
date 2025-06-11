@@ -18,7 +18,6 @@ export async function GET(request, { params }) {
       where: { id: bookId },
       include: {
         categories: true,
-        images: true,
         contentBlocks: {
           orderBy: { order: 'asc' },
         },

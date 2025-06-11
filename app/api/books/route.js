@@ -12,7 +12,6 @@ export async function GET() {
         contentBlocks: {
           orderBy: { order: 'asc' },
         },
-        images: true,
       },
     });
     return NextResponse.json(books, { status: 200 });
