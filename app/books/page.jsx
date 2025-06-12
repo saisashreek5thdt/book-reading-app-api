@@ -36,7 +36,7 @@ export default function BooksPage() {
 
   async function fetchBooks() {
     try {
-      const res = await fetch("http://localhost:3000/api/books");
+      const res = await fetch(`${process.env.BASE_URL}/api/books`);
       if (!res.ok) throw new Error("Failed to fetch books");
       const data = await res.json();
       setBooks(data);
@@ -51,8 +51,8 @@ export default function BooksPage() {
     e.preventDefault();
     const method = editingBook ? "PUT" : "POST";
     const url = editingBook
-      ? `http://localhost:3000/api/books/${editingBook.id}`
-      : "http://localhost:3000/api/books";
+      ? `${process.env.BASE_URL}/api/books/${editingBook.id}`
+      : `${process.env.BASE_URL}/api/books`;
 
     const body = new FormData();
 
@@ -134,7 +134,7 @@ export default function BooksPage() {
     if (!confirm("Are you sure you want to delete this book?")) return;
 
     try {
-      const res = await fetch(`http://localhost:3000/api/books/${id}`, {
+      const res = await fetch(`${process.env.BASE_URL}api/books/${id}`, {
         method: "DELETE",
       });
 
