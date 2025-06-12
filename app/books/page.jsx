@@ -31,7 +31,7 @@ export default function BooksPage() {
 
   async function fetchBooks() {
     try {
-      const res = await fetch("http://localhost:3000/api/books");
+      const res = await fetch("/api/books");
       if (!res.ok) throw new Error("Failed to fetch books");
       const data = await res.json();
       setBooks(data);
@@ -45,9 +45,7 @@ export default function BooksPage() {
   async function handleCreateOrUpdate(e) {
     e.preventDefault();
     const method = editingBook ? "PUT" : "POST";
-    const url = editingBook
-      ? `http://localhost:3000/api/books/${editingBook.id}`
-      : "http://localhost:3000/api/books";
+    const url = editingBook ? `/api/books/${editingBook.id}` : "/api/books";
 
     try {
       const res = await fetch(url, {
@@ -56,7 +54,8 @@ export default function BooksPage() {
         body: JSON.stringify(formData),
       });
 
-      if (!res.ok) throw new Error(`Failed to ${editingBook ? "update" : "create"} book`);
+      if (!res.ok)
+        throw new Error(`Failed to ${editingBook ? "update" : "create"} book`);
 
       const updatedBook = await res.json();
 
@@ -81,7 +80,7 @@ export default function BooksPage() {
         layout: "MIXED",
         categoryNames: [],
         contentBlocks: [],
-        images: []
+        images: [],
       });
       setEditingBook(null);
     } catch (err) {
@@ -112,7 +111,7 @@ export default function BooksPage() {
     if (!confirm("Are you sure you want to delete this book?")) return;
 
     try {
-      const res = await fetch(`http://localhost:3000/api/books/${id}`, {
+      const res = await fetch(`/api/books/${id}`, {
         method: "DELETE",
       });
 
@@ -132,97 +131,133 @@ export default function BooksPage() {
       <h1 className="text-2xl font-bold mb-6">📚 Book Manager</h1>
 
       {/* Form for create/edit */}
-      <form onSubmit={handleCreateOrUpdate} className="mb-8 bg-white shadow rounded-lg p-6">
-        <h2 className="text-xl font-semibold mb-4">{editingBook ? "Edit Book" : "Add New Book"}</h2>
+      <form
+        onSubmit={handleCreateOrUpdate}
+        className="mb-8 bg-white shadow rounded-lg p-6"
+      >
+        <h2 className="text-xl font-semibold mb-4">
+          {editingBook ? "Edit Book" : "Add New Book"}
+        </h2>
         <div className="grid grid-cols-2 gap-4">
           <input
             placeholder="Title"
             value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, title: e.target.value })
+            }
             className="border p-2 rounded"
             required
           />
           <input
             placeholder="Author"
             value={formData.author}
-            onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, author: e.target.value })
+            }
             className="border p-2 rounded"
             required
           />
           <input
             placeholder="Language"
             value={formData.language}
-            onChange={(e) => setFormData({ ...formData, language: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, language: e.target.value })
+            }
             className="border p-2 rounded"
             required
           />
           <input
             placeholder="Cover Image URL"
             value={formData.coverImage}
-            onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, coverImage: e.target.value })
+            }
             className="border p-2 rounded"
           />
           <input
             placeholder="Page Count"
             type="number"
             value={formData.pageCount}
-            onChange={(e) => setFormData({ ...formData, pageCount: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, pageCount: e.target.value })
+            }
             className="border p-2 rounded"
           />
           <input
             placeholder="Audio Link"
             value={formData.audioLink}
-            onChange={(e) => setFormData({ ...formData, audioLink: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, audioLink: e.target.value })
+            }
             className="border p-2 rounded"
           />
           <input
             placeholder="Category Names (comma-separated)"
             value={formData.categoryNames.join(",")}
             onChange={(e) =>
-              setFormData({ ...formData, categoryNames: e.target.value.split(",").map((s) => s.trim()) })
+              setFormData({
+                ...formData,
+                categoryNames: e.target.value.split(",").map((s) => s.trim()),
+              })
             }
             className="border p-2 rounded"
           />
           <div className="mb-4">
-            <label className="block mb-2 text-sm font-medium text-gray-700">Choose Layout</label>
+            <label className="block mb-2 text-sm font-medium text-gray-700">
+              Choose Layout
+            </label>
             <select
               value={formData.layout}
-              onChange={(e) => setFormData({ ...formData, layout: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, layout: e.target.value })
+              }
               className="block w-full mt-1 rounded-md border-2 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
             >
               <option value="" disabled>
                 Choose layout
               </option>
               <option value="FULL_TEXT">Full Text</option>
-              <option value="IMAGE_TOP_TEXT_BOTTOM">Image Top, Text Bottom</option>
-              <option value="TEXT_TOP_IMAGE_BOTTOM">Text Top, Image Bottom</option>
+              <option value="IMAGE_TOP_TEXT_BOTTOM">
+                Image Top, Text Bottom
+              </option>
+              <option value="TEXT_TOP_IMAGE_BOTTOM">
+                Text Top, Image Bottom
+              </option>
               <option value="MIXED">Mixed</option>
             </select>
           </div>
           <input
             placeholder="Small Description"
             value={formData.smallDescription}
-            onChange={(e) => setFormData({ ...formData, smallDescription: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, smallDescription: e.target.value })
+            }
             className="border p-2 rounded col-span-2"
           />
           <textarea
             placeholder="Content"
             value={formData.content}
-            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, content: e.target.value })
+            }
             className="border p-2 rounded col-span-2"
             rows="20"
           ></textarea>
           <textarea
             placeholder="Related Info (JSON)"
             value={formData.relatedInfo}
-            onChange={(e) => setFormData({ ...formData, relatedInfo: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, relatedInfo: e.target.value })
+            }
             className="border p-2 rounded col-span-2"
             rows="3"
           ></textarea>
           <textarea
             placeholder="Images Array (JSON)"
             value={formData.images}
-            onChange={(e) => setFormData({ ...formData, images: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, images: e.target.value })
+            }
             className="border p-2 rounded col-span-2"
             rows="3"
           ></textarea>
@@ -238,7 +273,10 @@ export default function BooksPage() {
       {/* Book List */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {books.map((book) => (
-          <div key={book.id} className="border rounded shadow p-4 flex flex-col justify-between">
+          <div
+            key={book.id}
+            className="border rounded shadow p-4 flex flex-col justify-between"
+          >
             <div>
               <h2 className="font-bold text-lg">{book.title}</h2>
               <p className="text-sm text-gray-600">by {book.author}</p>
