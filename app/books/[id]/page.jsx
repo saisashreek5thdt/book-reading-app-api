@@ -140,6 +140,11 @@ export default function BookDetails({ params }) {
             Back to All Books
           </button>
         </Link>
+        <Link href={`/books/edit/${id}`}>
+    <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition">
+      Edit Book
+    </button>
+  </Link>
       </div>
     </div>
   );
