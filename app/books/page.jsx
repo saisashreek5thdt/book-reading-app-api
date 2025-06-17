@@ -37,7 +37,7 @@ export default function BooksPage() {
 
   async function fetchBooks() {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/books`);
+      const res = await fetch(`/api/books`);
       if (!res.ok) throw new Error("Failed to fetch books");
       const data = await res.json();
       setBooks(data);
@@ -52,8 +52,8 @@ export default function BooksPage() {
     e.preventDefault();
     const method = editingBook ? "PUT" : "POST";
     const url = editingBook
-      ? `${process.env.NEXT_PUBLIC_BASE_URL}/api/books/${editingBook.id}`
-      : `${process.env.NEXT_PUBLIC_BASE_URL}/api/books`;
+      ? `/api/books/${editingBook.id}`
+      : `/api/books`;
 
     const body = new FormData();
 
@@ -135,7 +135,7 @@ export default function BooksPage() {
     if (!confirm("Are you sure you want to delete this book?")) return;
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/books/${id}`, {
+      const res = await fetch(`/api/books/${id}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed to delete book");

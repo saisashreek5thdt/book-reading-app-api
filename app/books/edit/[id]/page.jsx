@@ -12,7 +12,7 @@ export default function EditBookPage({ params }) {
   useEffect(() => {
     async function fetchBook() {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/books/${id}`);
+        const res = await fetch(`/api/books/${id}`);
         if (!res.ok) throw new Error("Failed to load book");
         const data = await res.json();
         setBookData(data);
