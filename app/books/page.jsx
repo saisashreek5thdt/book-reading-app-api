@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import TipTapEditor from "@/components/TipTapEditor";
-
+import ClientOnly from "@/components/ClientOnly";
+import CustomRichTextEditor from "@/components/CustomRichTextEditor"; // Import your custom editor
 
 
 export default function BooksPage() {
@@ -393,20 +394,33 @@ export default function BooksPage() {
               onChange={(e) => setFormData({ ...formData, smallDescription: e.target.value })}
               className="border p-2 rounded col-span-2"
             />
-            <textarea
+            {/* <textarea
               placeholder="Content"
               value={formData.content}
               onChange={(e) => setFormData({ ...formData, content: e.target.value })}
               className="border p-2 rounded col-span-2"
               rows="20"
-            ></textarea>
-            {/* <TipTapEditor
-              content={formData.content}
-              onChange={(value) => setFormData({ ...formData, content: value })}
-            /> */}
+            ></textarea> */}
+            <div className="col-span-2">
+             <CustomRichTextEditor
+  content={formData.content}
+  onChange={(value) => setFormData({ ...formData, content: value })}
+/>
+            </div>
 
 
-            {/* <textarea
+
+
+            {/*
+
+             <ClientOnly>
+                <TipTapEditor
+                  content={formData.content}
+                  onChange={(value) => setFormData({ ...formData, content: value })}
+                />
+              </ClientOnly>
+            
+             <textarea
               placeholder="Related Info (JSON)"
               value={formData.relatedInfo}
               onChange={(e) => setFormData({ ...formData, relatedInfo: e.target.value })}

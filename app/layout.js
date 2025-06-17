@@ -15,7 +15,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${jostSans.variable}`}>{children}</body>
+      <body suppressHydrationWarning={true} className={`${jostSans.variable}`}>{children}</body>
     </html>
   );
 }

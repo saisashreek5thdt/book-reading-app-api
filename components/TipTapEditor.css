@@ -1,0 +1,28 @@
+.ProseMirror {
+  min-height: 300px;
+  border: 1px solid #ddd;
+  padding: 1rem;
+  border-radius: 6px;
+  background-color: #fff;
+  outline: none;
+}
+
+.bubble-menu {
+  display: flex;
+  background: white;
+  border: 1px solid #ccc;
+  padding: 4px;
+  border-radius: 4px;
+  gap: 4px;
+  z-index: 100;
+}
+.bubble-menu button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  font-size: 14px;
+}
+.bubble-menu button:hover {
+  background-color: #eee;
+}
