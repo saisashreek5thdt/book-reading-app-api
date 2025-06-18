@@ -1,18 +1,34 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import TipTapEditor from "@/components/TipTapEditor";
-import ClientOnly from "@/components/ClientOnly";
-import CustomRichTextEditor from "@/components/CustomRichTextEditor"; // Import your custom editor
+import CustomRichTextEditor from "@/components/CustomRichTextEditor";
 
+// Toast Component
+function Toast({ message, type = "success", onClose }) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  const bgColor = type === "success" ? "bg-green-500" : "bg-red-500";
+
+  return (
+    <div className={`fixed bottom-4 right-4 ${bgColor} text-white px-4 py-2 rounded shadow-lg z-50`}>
+      {message}
+    </div>
+  );
+}
 
 export default function BooksPage() {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingBook, setEditingBook] = useState(null);
-  const [showForm, setShowForm] = useState(false); // <-- Control form visibility
+  const [showForm, setShowForm] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+  const [submitting, setSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -50,6 +66,13 @@ export default function BooksPage() {
 
   async function handleCreateOrUpdate(e) {
     e.preventDefault();
+    setSubmitting(true);
+    setToast({
+      show: true,
+      message: editingBook ? "Updating book..." : "Creating book...",
+      type: "success",
+    });
+
     const method = editingBook ? "PUT" : "POST";
     const url = editingBook
       ? `/api/books/${editingBook.id}`
@@ -57,7 +80,6 @@ export default function BooksPage() {
 
     const body = new FormData();
 
-    // Append all fields
     for (const key in formData) {
       if (key === "coverImageFile" && formData.coverImage) {
         body.append("coverImage", formData.coverImage);
@@ -71,12 +93,7 @@ export default function BooksPage() {
     }
 
     try {
-      const res = await fetch(url, {
-        method,
-        // headers: { "Content-Type": "application/json" },
-        body,
-      });
-
+      const res = await fetch(url, { method, body });
       if (!res.ok) throw new Error(`Failed to ${editingBook ? "update" : "create"} book`);
 
       const updatedBook = await res.json();
@@ -85,8 +102,18 @@ export default function BooksPage() {
         setBooks((prev) =>
           prev.map((book) => (book.id === updatedBook.id ? updatedBook : book))
         );
+        setToast({
+          show: true,
+          message: "✅ Book updated successfully!",
+          type: "success",
+        });
       } else {
         setBooks((prev) => [...prev, updatedBook]);
+        setToast({
+          show: true,
+          message: "✅ New book created successfully!",
+          type: "success",
+        });
       }
 
       setFormData({
@@ -105,9 +132,15 @@ export default function BooksPage() {
         images: []
       });
       setEditingBook(null);
-      setShowForm(false); // Hide form after submit
+      setShowForm(false);
     } catch (err) {
-      alert(err.message);
+      setToast({
+        show: true,
+        message: `❌ ${err.message || "Something went wrong."}`,
+        type: "error",
+      });
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -128,29 +161,55 @@ export default function BooksPage() {
       contentBlocks: book.contentBlocks || [],
       images: book.images || [],
     });
-    setShowForm(true); // Show form when editing
+    setShowForm(true);
   }
 
   async function handleDelete(id) {
     if (!confirm("Are you sure you want to delete this book?")) return;
+    setToast({
+      show: true,
+      message: "🗑️ Deleting book...",
+      type: "success",
+    });
 
     try {
-      const res = await fetch(`/api/books/${id}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(`/api/books/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete book");
 
       setBooks((prev) => prev.filter((book) => book.id !== id));
+      setToast({
+        show: true,
+        message: "✅ Book deleted successfully.",
+        type: "success",
+      });
     } catch (err) {
-      alert(err.message);
+      setToast({
+        show: true,
+        message: `❌ ${err.message || "Failed to delete book."}`,
+        type: "error",
+      });
     }
   }
 
-  if (loading) return <div className="p-6">Loading...</div>;
-  if (error) return <div className="text-red-500 p-6">Error: {error}</div>;
+  if (loading) return <p className="p-6">Loading...</p>;
+  if (error)
+    return (
+      <div className="text-red-500 p-6">
+        ❌ Error: {error}
+      </div>
+    );
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
+      {/* Toast Notification */}
+      {toast.show && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast({ ...toast, show: false })}
+        />
+      )}
+
       {/* Heading + Button */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">📚 Book Manager</h1>
@@ -215,6 +274,7 @@ export default function BooksPage() {
               onChange={(e) => setFormData({ ...formData, pageCount: e.target.value })}
               className="border p-2 rounded"
             />
+
             {/* Cover Image Upload */}
             <div className="mb-4">
               <label className="block mb-2 text-sm font-medium text-gray-700">Cover Image</label>
@@ -256,30 +316,10 @@ export default function BooksPage() {
                 </div>
               )}
             </div>
-            {/* <input
-              placeholder="Cover Image URL"
-              value={formData.coverImage}
-              onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
-              className="border p-2 rounded"
-            /> */}
-            {/* <input
-              placeholder="Audio Link"
-              value={formData.audioLink}
-              onChange={(e) => setFormData({ ...formData, audioLink: e.target.value })}
-              className="border p-2 rounded"
-            /> */}
-            {/* <input
-              placeholder="Category Names (comma-separated)"
-              value={formData.categoryNames.join(",")}
-              onChange={(e) =>
-                setFormData({ ...formData, categoryNames: e.target.value.split(",").map((s) => s.trim()) })
-              }
-              className="border p-2 rounded"
-            /> */}
+
+            {/* Categories */}
             <div className="mb-4 col-span-2">
               <label className="block mb-2 text-sm font-medium text-gray-700">Select Categories</label>
-
-              {/* Selected Tags Display */}
               <div className="flex flex-wrap gap-2 mb-2 min-h-[36px] border rounded-md p-2 bg-gray-50">
                 {formData.categoryNames.length === 0 && (
                   <span className="text-gray-400 text-sm">No categories selected</span>
@@ -298,15 +338,13 @@ export default function BooksPage() {
                           categoryNames: formData.categoryNames.filter((c) => c !== category),
                         })
                       }
-                      className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full text-gray-400 hover:bg-blue-200 hover:text-blue-900 focus:outline-none"
+                      className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full text-gray-400 hover:bg-blue-200 hover:text-blue-900"
                     >
                       &times;
                     </button>
                   </span>
                 ))}
               </div>
-
-              {/* Checkbox List */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 mt-2 max-h-40 overflow-y-auto border-t pt-2">
                 {[
                   "Fiction",
@@ -344,31 +382,14 @@ export default function BooksPage() {
               </div>
             </div>
 
-            {/* <div className="mb-4">
-              <label className="block mb-2 text-sm font-medium text-gray-700">Choose Layout</label>
-              <select
-                value={formData.layout}
-                onChange={(e) => setFormData({ ...formData, layout: e.target.value })}
-                className="block w-full mt-1 rounded-md border-2 border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-              >
-                <option value="" disabled>
-                  Choose layout
-                </option>
-                <option value="FULL_TEXT">Full Text</option>
-                <option value="IMAGE_TOP_TEXT_BOTTOM">Image Top, Text Bottom</option>
-                <option value="TEXT_TOP_IMAGE_BOTTOM">Text Top, Image Bottom</option>
-                <option value="MIXED">Mixed</option>
-              </select>
-            </div> */}
-
+            {/* Layout Selection */}
             <div className="mb-4">
               <label className="block mb-2 text-sm font-medium text-gray-700">Choose Layout</label>
-
               <div className="grid grid-cols-2 gap-4">
                 {[
                   { value: "FULL_TEXT", label: "Full Text", icon: "📄" },
-                  { value: "IMAGE_TOP_TEXT_BOTTOM", label: "Image Top, Text Bottom", icon: `🖼️📄` },
-                  { value: "TEXT_TOP_IMAGE_BOTTOM", label: "Text Top, Image Bottom", icon: "📄\n🖼️" },
+                  { value: "IMAGE_TOP_TEXT_BOTTOM", label: "Image Top, Text Bottom", icon: "🖼️📄" },
+                  { value: "TEXT_TOP_IMAGE_BOTTOM", label: "Text Top, Image Bottom", icon: "📄🖼️" },
                   { value: "MIXED", label: "Mixed", icon: "🧩" },
                 ].map((layoutOption) => (
                   <label key={layoutOption.value} className="flex items-start space-x-2 p-2 border rounded cursor-pointer hover:bg-gray-50">
@@ -388,52 +409,24 @@ export default function BooksPage() {
                 ))}
               </div>
             </div>
+
+            {/* Small Description */}
             <input
               placeholder="Small Description"
               value={formData.smallDescription}
               onChange={(e) => setFormData({ ...formData, smallDescription: e.target.value })}
               className="border p-2 rounded col-span-2"
             />
-            {/* <textarea
-              placeholder="Content"
-              value={formData.content}
-              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-              className="border p-2 rounded col-span-2"
-              rows="20"
-            ></textarea> */}
+
+            {/* Content Editor */}
             <div className="col-span-2">
-             <CustomRichTextEditor
-  content={formData.content}
-  onChange={(value) => setFormData({ ...formData, content: value })}
-/>
+              <CustomRichTextEditor
+                content={formData.content}
+                onChange={(value) => setFormData({ ...formData, content: value })}
+              />
             </div>
 
-
-
-
-            {/*
-
-             <ClientOnly>
-                <TipTapEditor
-                  content={formData.content}
-                  onChange={(value) => setFormData({ ...formData, content: value })}
-                />
-              </ClientOnly>
-            
-             <textarea
-              placeholder="Related Info (JSON)"
-              value={formData.relatedInfo}
-              onChange={(e) => setFormData({ ...formData, relatedInfo: e.target.value })}
-              className="border p-2 rounded col-span-2"
-              rows="3"
-            ></textarea> */}
-            {/* <textarea
-              placeholder="Images Array (JSON)"
-              value={formData.images}
-              onChange={(e) => setFormData({ ...formData, images: e.target.value })}
-              className="border p-2 rounded col-span-2"
-              rows="3"
-            ></textarea> */}
+            {/* Images Upload */}
             <div className="mb-4">
               <label className="block mb-2 text-sm font-medium text-gray-700">Book Images</label>
               <input
@@ -483,12 +476,18 @@ export default function BooksPage() {
               )}
             </div>
           </div>
+
+          {/* Submit Buttons */}
           <button
             type="submit"
-            className="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            disabled={submitting}
+            className={`mt-4 px-4 py-2 rounded ${
+              submitting ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"
+            } text-white`}
           >
-            {editingBook ? "Update Book" : "Create Book"}
+            {submitting ? "Please wait..." : editingBook ? "Update Book" : "Create Book"}
           </button>
+
           <button
             type="button"
             onClick={() => {
@@ -502,7 +501,7 @@ export default function BooksPage() {
         </form>
       )}
 
-      {/* Only show book list if form isn't visible */}
+      {/* Book List */}
       {!showForm && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {books.map((book) => (
@@ -532,7 +531,6 @@ export default function BooksPage() {
                 </button>
               </div>
             </div>
-
           ))}
         </div>
       )}

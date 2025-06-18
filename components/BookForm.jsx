@@ -1,9 +1,10 @@
+// components/BooksForm.jsx
+
 "use client";
 
 import { useState } from "react";
-import { saveImage } from "@/utils/saveImage";
 
-export default function BooksForm({ initialData = null }) {
+export default function BooksForm({ initialData = null, onSuccess, onError }) {
   const [formData, setFormData] = useState({
     title: initialData?.title || "",
     author: initialData?.author || "",
@@ -20,8 +21,11 @@ export default function BooksForm({ initialData = null }) {
     images: initialData?.images || [],
   });
 
+  const [submitting, setSubmitting] = useState(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
 
     const method = initialData ? "PUT" : "POST";
     const url = initialData
@@ -32,24 +36,51 @@ export default function BooksForm({ initialData = null }) {
 
     for (const key in formData) {
       if (Array.isArray(formData[key])) {
+        // Handle arrays like categories
         formData[key].forEach((val) => body.append(key, val));
+      } else if (key === "images") {
+        const currentImages = formData[key];
+
+        // Preserve existing image URLs if no new files were uploaded
+        if (currentImages.length === 0 && initialData?.images?.length > 0) {
+          initialData.images.forEach((imgUrl) => body.append("images", imgUrl));
+        } else {
+          // Append only actual File objects (new uploads)
+          currentImages.forEach((file) => {
+            if (file instanceof File) {
+              body.append("images", file);
+            }
+          });
+        }
+      } else if (key === "coverImage") {
+        // Preserve existing cover image URL if no new file was selected
+        if (formData.coverImage instanceof File) {
+          body.append("coverImage", formData.coverImage);
+        } else if (initialData?.coverImage) {
+          body.append("coverImage", initialData.coverImage);
+        }
       } else if (formData[key] !== undefined && formData[key] !== null) {
         body.append(key, formData[key]);
       }
     }
 
-    const res = await fetch(url, {
-      method,
-      body,
-    });
+    try {
+      const res = await fetch(url, {
+        method,
+        body,
+      });
 
-    const result = await res.json();
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || `Failed to ${initialData ? "update" : "create"} book`);
+      }
 
-    if (res.ok) {
-      alert(initialData ? "Book updated!" : "Book created!");
-      window.location.href = "/books"; // Redirect
-    } else {
-      alert("Error saving book");
+      const result = await res.json();
+      if (onSuccess) onSuccess(result);
+    } catch (err) {
+      if (onError) onError(err);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -103,6 +134,7 @@ export default function BooksForm({ initialData = null }) {
           }}
           className="w-full border px-3 py-2 rounded-md"
         />
+
         {formData.coverImage && (
           <div className="mt-2 flex items-center space-x-2">
             {formData.coverImage instanceof File ? (
@@ -122,9 +154,7 @@ export default function BooksForm({ initialData = null }) {
               />
             )}
             <p className="text-sm text-gray-600">
-              {formData.coverImage instanceof File
-                ? formData.coverImage.name
-                : "Saved Image"}
+              {formData.coverImage instanceof File ? formData.coverImage.name : "Saved Image"}
             </p>
             <button
               type="button"
@@ -250,6 +280,7 @@ export default function BooksForm({ initialData = null }) {
           }}
           className="w-full border px-3 py-2 rounded-md"
         />
+
         {formData.images.length > 0 && (
           <div className="mt-2 grid grid-cols-3 gap-4">
             {formData.images.map((file, index) => (
@@ -268,7 +299,10 @@ export default function BooksForm({ initialData = null }) {
                     className="h-24 w-full object-cover rounded"
                   />
                 )}
-                <p className="text-xs text-gray-600 truncate mt-1">{file.name || "Saved Image"}</p>
+
+                <p className="text-xs text-gray-600 truncate mt-1">
+                  {file.name || "Saved Image"}
+                </p>
                 <button
                   type="button"
                   onClick={() =>
@@ -288,12 +322,21 @@ export default function BooksForm({ initialData = null }) {
       </div>
 
       {/* Submit Button */}
-      <button
-        type="submit"
-        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-      >
-        {initialData ? "Update Book" : "Create Book"}
-      </button>
+      <div>
+        <button
+          type="submit"
+          disabled={submitting}
+          className={`bg-blue-500 text-white px-4 py-2 rounded ${
+            submitting ? "opacity-70 cursor-not-allowed" : "hover:bg-blue-600"
+          }`}
+        >
+          {submitting
+            ? "Please wait..."
+            : initialData
+            ? "Update Book"
+            : "Create Book"}
+        </button>
+      </div>
     </form>
   );
 }
