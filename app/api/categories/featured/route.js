@@ -29,16 +29,8 @@ export async function GET() {
         },
       },
       take: 10,
-      select: {
-        id: true,
-        title: true,
-        coverImage: true,
-        categories: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+      include: {
+        categories: true,
       },
     });
 
@@ -50,16 +42,8 @@ export async function GET() {
         },
       },
       take: 10,
-      select: {
-        id: true,
-        title: true,
-        coverImage: true,
-        categories: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+        include: {
+        categories: true,
       },
     });
 
