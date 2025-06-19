@@ -1,13 +1,23 @@
 import { PrismaClient } from '@prisma/client';
 import { NextResponse } from 'next/server';
+import {
+  getFeaturedBooksFromCache,
+  updateFeaturedBooksCache,
+} from '@/utils/cache';
 
 const prisma = new PrismaClient();
 
 export async function GET() {
   try {
+    // Check cache first
+    const cachedResult = getFeaturedBooksFromCache();
+    if (cachedResult) {
+      return NextResponse.json(cachedResult, { status: 200 });
+    }
+
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
 
-    // Books that have been actively read recently
+    // Optimized Query: Get trending books with minimal data
     const trending = await prisma.book.findMany({
       where: {
         bookmarks: {
@@ -19,27 +29,46 @@ export async function GET() {
         },
       },
       take: 10,
-      include: {
-        categories: true,
-      },
-    });
-
-    // Top bookmarked books overall
-    const recommended = await prisma.book.findMany({
-      orderBy: [
-        {
-          bookmarks: {
-            _count: 'desc',
+      select: {
+        id: true,
+        title: true,
+        coverImage: true,
+        categories: {
+          select: {
+            id: true,
+            name: true,
           },
         },
-      ],
-      take: 10,
-      include: {
-        categories: true,
       },
     });
 
-    return NextResponse.json({ trending, recommended }, { status: 200 });
+    // Optimized Query: Top bookmarked books overall
+    const recommended = await prisma.book.findMany({
+      orderBy: {
+        bookmarks: {
+          _count: 'desc',
+        },
+      },
+      take: 10,
+      select: {
+        id: true,
+        title: true,
+        coverImage: true,
+        categories: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    const result = { trending, recommended };
+
+    // Update cache
+    updateFeaturedBooksCache(result);
+
+    return NextResponse.json(result, { status: 200 });
   } catch (error) {
     console.error('Error fetching featured books:', error);
     return NextResponse.json(
