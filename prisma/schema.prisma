@@ -1,26 +1,20 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+generator client {
+  provider = "prisma-client-js"
+}
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
 model User {
   id        Int        @id @default(autoincrement())
-  fullName  String?     
   email     String     @unique
   password  String
-  mobile    String?
-  bookmarks Bookmark[]
   createdAt DateTime   @default(now())
+  mobile    String?
+  fullName  String?
+  bookmarks Bookmark[]
 }
 
 model Book {
@@ -30,26 +24,46 @@ model Book {
   language         String
   coverImage       String?
   smallDescription String?
-  content          String?        @db.Text  // Optional fallback
+  content          String?
   pageCount        Int?
   audioLink        String?
-  relatedInfo      String?        @db.Text
-  layout           LayoutType     @default(MIXED) // NEW
-  contentBlocks    ContentBlock[]             // NEW
-  images           String[]      // NEW
-  categories       Category[]     
-  bookmarks        Bookmark[]
+  relatedInfo      String?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
+  layout           LayoutType     @default(MIXED)
+  images           String[]
+  bookmarks        Bookmark[]
+  contentBlocks    ContentBlock[]
+  categories       Category[]     @relation("BookToCategory")
 }
 
 model ContentBlock {
-  id       Int        @id @default(autoincrement())
-  type     BlockType
-  content  String
-  order    Int
-  book     Book       @relation(fields: [bookId], references: [id])
-  bookId   Int
+  id      Int       @id @default(autoincrement())
+  type    BlockType
+  content String
+  order   Int
+  bookId  Int
+  book    Book      @relation(fields: [bookId], references: [id])
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  books     Book[]   @relation("BookToCategory")
+}
+
+model Bookmark {
+  id        Int      @id @default(autoincrement())
+  bookId    Int
+  userId    Int
+  progress  Float    @default(0.0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  book      Book     @relation(fields: [bookId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, bookId])
 }
 
 enum BlockType {
@@ -62,24 +76,4 @@ enum LayoutType {
   IMAGE_TOP_TEXT_BOTTOM
   TEXT_TOP_IMAGE_BOTTOM
   MIXED
-}
-
-
-model Category {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  books     Book[]
-  createdAt DateTime @default(now())
-}
-
-model Bookmark {
-  id        Int      @id @default(autoincrement())
-  bookId    Int
-  userId    Int
-  progress  Float    @default(0.0)
-  book      Book     @relation(fields: [bookId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  @@unique([userId, bookId])
 }
