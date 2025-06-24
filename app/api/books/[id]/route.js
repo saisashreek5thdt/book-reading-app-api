@@ -39,59 +39,60 @@ export async function GET(request, { params }) {
 
 // PUT /api/books/[id]
 export async function PUT(request, { params }) {
-  const { id } = await params;
-  const bookId = parseInt(id);
-  const formData = await request.formData();
-  const title = formData.get("title");
-  const author = formData.get("author");
-  const language = formData.get("language");
-  const coverImageFile = formData.get("coverImage");
-  const smallDescription = formData.get("smallDescription");
-  const content = formData.get("content");
-  const pageCount = formData.get("pageCount");
-  const audioLink = formData.get("audioLink");
-  const relatedInfo = formData.get("relatedInfo");
-  const layout = formData.get("layout") || "MIXED";
-  const categoryNames = formData.getAll("categoryNames");
-  const imageFiles = formData.getAll("images");
-  let contentBlocks = [];
+  const { id } = await params
+  const bookId = parseInt(id)
+  const formData = await request.formData()
+  const title = formData.get('title')
+  const author = formData.get('author')
+  const language = formData.get('language')
+  const smallDescription = formData.get('smallDescription')
+  const content = formData.get('content')
+  const pageCount = parseInt(formData.get('pageCount')) || null
+  const audioLink = formData.get('audioLink')
+  const relatedInfo = formData.get('relatedInfo')
+  const layout = formData.get('layout') || 'MIXED'
+  const categoryNames = formData.getAll('categoryNames')
+  const coverImageFile = formData.get('coverImage')
+  const imageFiles = formData.getAll('images')
+
+  let contentBlocks = []
   try {
-    const raw = formData.get("contentBlocks");
-    contentBlocks = raw ? JSON.parse(raw) : [];
+    const raw = formData.get('contentBlocks')
+    contentBlocks = raw ? JSON.parse(raw) : []
   } catch (e) {
-    return NextResponse.json({ error: "Invalid contentBlocks format" }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid contentBlocks format' }, { status: 400 })
   }
 
-  // Upload cover image
-  let coverImageUrl = null;
-  if (coverImageFile && coverImageFile.size > 0) {
-    coverImageUrl = await saveImage(coverImageFile);
+  // Upload cover image using Supabase
+  let coverImageUrl = null
+  if (coverImageFile && coverImageFile instanceof File && coverImageFile.size > 0) {
+    coverImageUrl = await uploadImage(coverImageFile, 'covers')
   }
 
-  // Upload multiple images
-  let imageUrls = [];
-  for (const file of imageFiles) {
-    if (file && file.size > 0) {
-      const url = await saveImage(file);
-      imageUrls.push(url);
-    }
+  // Upload multiple images using Supabase
+  let imageUrls = []
+  if (imageFiles.length > 0) {
+    imageUrls = await uploadImages(imageFiles, 'pages')
   }
 
   // Ensure categories exist — create missing ones
   const existingCategories = await prisma.category.findMany({
     where: { name: { in: categoryNames } },
-  });
-  const existingNames = existingCategories.map(cat => cat.name);
-  const newNames = categoryNames.filter(name => !existingNames.includes(name));
-  let newCategories = [];
+  })
+
+  const existingNames = existingCategories.map(cat => cat.name)
+  const newNames = categoryNames.filter(name => !existingNames.includes(name))
+  let newCategories = []
   if (newNames.length > 0) {
     newCategories = await prisma.category.createManyAndReturn({
       data: newNames.map(name => ({ name })),
-    });
+    })
   }
-  const allCategories = [...existingCategories, ...newCategories];
-  const categoryIds = allCategories.map(cat => cat.id);
 
+  const allCategories = [...existingCategories, ...newCategories]
+  const categoryIds = allCategories.map(cat => cat.id)
+
+  // Update Book in DB
   const updatedBook = await prisma.book.update({
     where: { id: bookId },
     data: {
@@ -101,7 +102,7 @@ export async function PUT(request, { params }) {
       coverImage: coverImageUrl,
       smallDescription,
       content,
-      pageCount: pageCount ? parseInt(pageCount) : undefined,
+      pageCount,
       audioLink,
       relatedInfo,
       layout,
@@ -122,14 +123,12 @@ export async function PUT(request, { params }) {
       categories: true,
       contentBlocks: true,
     },
-  });
+  })
 
-  // Clear cache
-  updateBooksCache(null);
+  updateBooksCache(null)
 
-  return NextResponse.json(updatedBook, { status: 200 });
+  return NextResponse.json(updatedBook, { status: 200 })
 }
-
 // DELETE /api/books/[id]
 export async function DELETE(request, { params }) {
   const { id } = await params;

@@ -459,11 +459,22 @@ export default function BooksPage() {
               className="border p-2 rounded col-span-2"
             />
 
-            {/* Content Editor */}
+            {/* Content Editor
             <div className="col-span-2">
               <CustomRichTextEditor
                 content={formData.content}
                 onChange={(value) => setFormData({ ...formData, content: value })}
+              />
+            </div> */}
+
+            {/* Content Editor */}
+            <div className="col-span-2">
+              <textarea
+                name="content"
+                value={formData.content}
+                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                className="w-full h-64 p-2 border rounded"
+                placeholder="Write your content here..."
               />
             </div>
 
@@ -530,9 +541,8 @@ export default function BooksPage() {
           <button
             type="submit"
             disabled={submitting}
-            className={`mt-4 px-4 py-2 rounded ${
-              submitting ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"
-            } text-white`}
+            className={`mt-4 px-4 py-2 rounded ${submitting ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"
+              } text-white`}
           >
             {submitting ? "Please wait..." : editingBook ? "Update Book" : "Create Book"}
           </button>
