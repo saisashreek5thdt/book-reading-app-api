@@ -1,7 +1,6 @@
-// utils/uploadImageToSupabase.js
 import { supabase } from '@/lib/supabaseClient'
 
-const BUCKET_NAME = 'book-images'
+const BUCKET_NAME = 'book-image'
 
 export async function uploadImage(file, folder = 'covers') {
   if (!file || !file.size) return null
@@ -13,12 +12,17 @@ export async function uploadImage(file, folder = 'covers') {
     .from(BUCKET_NAME)
     .upload(filePath, file)
 
-  if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`)
+  if (uploadError) {
+    throw new Error(`Upload failed: ${uploadError.message}`)
+  }
 
-  // ✅ Get public URL instead of signed URL
-  const { data } = supabase.storage.from(BUCKET_NAME).getPublicUrl(filePath)
+  // ✅ Get public URL after successful upload
+  const { data: publicUrlData } = supabase
+    .storage
+    .from(BUCKET_NAME)
+    .getPublicUrl(filePath)
 
-  return data.publicUrl
+  return publicUrlData.publicUrl
 }
 
 export async function uploadImages(files, folder = 'pages') {
