@@ -1,18 +1,12 @@
-// app/api/bookmarks/[id]/route.js
 import { PrismaClient } from '@prisma/client';
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
-
 
 const prisma = new PrismaClient();
-// Schema validation
-const bookmarkUpdateSchema = z.object({
-  progress: z.number().min(0).max(100),
-});
 
-// PUT /api/bookmarks/[id]
+
+
 export async function PUT(request, { params }) {
-  const { id } = await params;
+  const { id } = await params; // ✅ Await params
 
   if (isNaN(parseInt(id))) {
     return NextResponse.json({ error: 'Invalid bookmark ID' }, { status: 400 });
@@ -24,54 +18,57 @@ export async function PUT(request, { params }) {
 
   try {
     body = await request.json();
-  } catch {
+  } catch (e) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const result = bookmarkUpdateSchema.safeParse(body);
+  const { progress } = body;
 
-  if (!result.success) {
+  if (progress === undefined || isNaN(parseFloat(progress))) {
     return NextResponse.json(
-      { error: 'Validation failed', issues: result.error.issues },
+      { error: 'Progress must be a valid number' },
       { status: 400 }
     );
   }
 
-  const { progress } = result.data;
+  const parsedProgress = parseFloat(progress);
 
   try {
     const updatedBookmark = await prisma.bookmark.update({
       where: { id: bookmarkId },
-      data: { progress },
+      data: { progress: parsedProgress },
     });
 
     return NextResponse.json(updatedBookmark, { status: 200 });
   } catch (error) {
     console.error('Error updating bookmark:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal Server Error' },
+      { status: 500 }
+    );
   }
 }
 
-// DELETE /api/bookmarks/[id]
 export async function DELETE(request, { params }) {
   const { id } = await params;
 
   if (isNaN(parseInt(id))) {
-    return NextResponse.json({ error: 'Invalid bookmark ID' }, { status: 400 });
+    return NextResponse.json({ error: "Invalid bookmark ID" }, { status: 400 });
   }
 
   const bookmarkId = parseInt(id);
 
   try {
-    // Soft delete
-    await prisma.bookmark.update({
+    await prisma.bookmark.delete({
       where: { id: bookmarkId },
-      data: { deletedAt: new Date() },
     });
 
-    return NextResponse.json({ message: 'Bookmark soft-deleted successfully' }, { status: 200 });
+    return NextResponse.json({ message: "Bookmark deleted successfully" }, { status: 200 });
   } catch (error) {
-    console.error('Error deleting bookmark:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error("Error deleting bookmark:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
