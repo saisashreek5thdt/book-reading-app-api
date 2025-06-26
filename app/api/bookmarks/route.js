@@ -1,120 +1,98 @@
-import { PrismaClient } from '@prisma/client';
+// app/api/bookmarks/route.js
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { PrismaClient } from '@prisma/client';
+
 
 const prisma = new PrismaClient();
+// Schema validation
+const bookmarkCreateSchema = z.object({
+  bookId: z.number(),
+  userId: z.number(),
+  progress: z.number().min(0).max(100).optional().default(0),
+});
 
+// GET /api/bookmarks?userId=123
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
-  const userId = searchParams.get("userId");
+  const userId = parseInt(searchParams.get('userId'));
 
-  if (!userId || isNaN(parseInt(userId))) {
-    return NextResponse.json(
-      { error: "Valid userId is required" },
-      { status: 400 }
-    );
+  if (isNaN(userId)) {
+    return NextResponse.json({ error: 'Valid userId is required' }, { status: 400 });
   }
 
   try {
     const bookmarks = await prisma.bookmark.findMany({
       where: {
-        userId: parseInt(userId),
+        userId,
+        deletedAt: null, // Exclude soft-deleted
       },
-      include: {
-        book: true,
+      select: {
+        id: true,
+        progress: true,
+        book: {
+          select: {
+            id: true,
+            title: true,
+            author: true,
+            coverImage: true,
+          },
+        },
       },
     });
 
-    return NextResponse.json(bookmarks, { status: 200 });
+    return NextResponse.json(bookmarks, {
+      status: 200,
+      headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30',
+      },
+    });
   } catch (error) {
-    console.error("Error fetching bookmarks:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    console.error('Error fetching bookmarks:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
+// POST /api/bookmarks
 export async function POST(request) {
   let body;
 
-  // Safely parse JSON
-  try{
+  try {
     body = await request.json();
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { bookId, userId, progress } = body;
+  const result = bookmarkCreateSchema.safeParse(body);
 
-  // Validate required fields
-  if (![bookId, userId, progress].every(x => x !== undefined && x !== null)) {
+  if (!result.success) {
     return NextResponse.json(
-      { error: 'Missing required fields: bookId, userId, progress' },
+      { error: 'Validation failed', issues: result.error.issues },
       { status: 400 }
     );
   }
 
-  // Validate types
-  if (
-    isNaN(parseInt(bookId)) ||
-    isNaN(parseInt(userId)) ||
-    isNaN(parseFloat(progress))
-  ) {
-    return NextResponse.json(
-      { error: 'Invalid data types: bookId, userId must be numbers, progress must be numeric' },
-      { status: 400 }
-    );
-  }
-
-  const parsedBookId = parseInt(bookId);
-  const parsedUserId = parseInt(userId);
-  const parsedProgress = parseFloat(progress);
+  const { bookId, userId, progress } = result.data;
 
   try {
-    // 🔍 Check if book and user exist
     const [book, user] = await Promise.all([
-      prisma.book.findUnique({ where: { id: parsedBookId } }),
-      prisma.user.findUnique({ where: { id: parsedUserId } }),
+      prisma.book.findUnique({ where: { id: bookId }, select: { id: true } }),
+      prisma.user.findUnique({ where: { id: userId }, select: { id: true } }),
     ]);
 
-    if (!book) {
-      return NextResponse.json(
-        { error: 'Book not found' },
-        { status: 404 }
-      );
+    if (!book || !user) {
+      return NextResponse.json({ error: 'Book or User not found' }, { status: 404 });
     }
 
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    // ✅ Proceed with upsert
     const bookmark = await prisma.bookmark.upsert({
-      where: {
-        userId_bookId: {
-          userId: parsedUserId,
-          bookId: parsedBookId,
-        },
-      },
-      update: {
-        progress: parsedProgress,
-      },
-      create: {
-        bookId: parsedBookId,
-        userId: parsedUserId,
-        progress: parsedProgress,
-      },
+      where: { userId_bookId: { userId, bookId } },
+      update: { progress },
+      create: { bookId, userId, progress },
     });
 
     return NextResponse.json(bookmark, { status: 200 });
   } catch (error) {
     console.error('Error creating/updating bookmark:', error);
-    return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

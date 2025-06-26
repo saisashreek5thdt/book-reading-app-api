@@ -64,6 +64,8 @@ model Bookmark {
   user      User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, bookId])
+  @@index([userId])     // 👈 For fetching all bookmarks of a user
+  @@index([bookId]) 
 }
 
 enum BlockType {
